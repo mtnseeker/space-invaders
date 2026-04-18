@@ -23,11 +23,11 @@ CYAN   = (0, 255, 255)
 PURPLE = (200, 0, 200)
 
 PLAYER_SPEED = 9
-LASER_SPEED = 6
+LASER_SPEED = 7
 LASER_COOLDOWN_MS = 600
 ROCKET_SPEED = 9
 ROCKET_COOLDOWN_MS = 2000
-ROCKET_BLAST_RADIUS = 100
+ROCKET_BLAST_RADIUS = 150
 ENEMY_BULLET_SPEED = 7
 ENEMY_COLS = 25
 ENEMY_ROWS = 8
@@ -130,10 +130,10 @@ class Rocket(Entity):
         ])
 
 class Explosion(Entity):
-    def __init__(self, x, y):
+    def __init__(self, x, y, max_radius=None):
         super().__init__(x, y, 0, 0)
-        self.radius = 10
-        self.max_radius = ROCKET_BLAST_RADIUS
+        self.max_radius = max_radius if max_radius is not None else ROCKET_BLAST_RADIUS
+        self.radius = min(10, self.max_radius)
     def update(self):
         self.radius += 4
         if self.radius >= self.max_radius:
@@ -284,10 +284,10 @@ def spawn_wave(wave_num):
     start_x = margin
     start_y = 80 + min(wave_num * 10, 120)
     for r in range(ENEMY_ROWS):
-        tier = 2 if r == 0 else (1 if r < 3 else 0)
         for c in range(ENEMY_COLS):
             x = start_x + c * col_spacing
             y = start_y + r * 35
+            tier = random.choices([0, 1, 2], weights=[5, 3, 2])[0]
             enemies.append(Enemy(x, y, r, c, tier))
     return enemies
 
@@ -335,7 +335,7 @@ def main():
             "enemies": spawn_wave(1),
             "enemy_bullets": [],
             "bunkers": [Bunker(SCREEN_W // (BUNKER_COUNT + 1) * (i + 1) - 30, SCREEN_H - 140) for i in range(BUNKER_COUNT)],
-            "ufo": UFO(),
+            "ufos": [UFO() for _ in range(3)],
             "score": 0, "wave": 1,
             "enemy_dir": 1,
             "last_rocket": -ROCKET_COOLDOWN_MS,
@@ -393,8 +393,7 @@ def main():
         for r in state["rockets"]: r.update()
         for e in state["explosions"]: e.update()
         for b in state["enemy_bullets"]: b.update()
-        state["ufo"].maybe_spawn()
-        state["ufo"].update()
+        for ufo in state["ufos"]: ufo.maybe_spawn(); ufo.update()
 
         alive_enemies = [e for e in state["enemies"] if e.alive]
         if alive_enemies:
@@ -431,10 +430,11 @@ def main():
                     break
             for b in state["bunkers"]:
                 if l.alive and b.hit(l.rect()): l.alive = False
-            if l.alive and state["ufo"].alive and l.rect().colliderect(state["ufo"].rect()):
-                l.alive = False; state["ufo"].alive = False
-                state["ufo"].next_spawn = now + random.randint(6000, 12000)
-                state["score"] += state["ufo"].points()
+            for ufo in state["ufos"]:
+                if l.alive and ufo.alive and l.rect().colliderect(ufo.rect()):
+                    l.alive = False; ufo.alive = False
+                    ufo.next_spawn = now + random.randint(6000, 12000)
+                    state["score"] += ufo.points()
 
         for r in state["rockets"]:
             if not r.alive: continue
@@ -459,15 +459,17 @@ def main():
                     e.alive = False
                     state["score"] += e.points
             for b in state["bunkers"]: b.hit_explosion(exp)
-            if state["ufo"].alive and exp.hits(state["ufo"].rect()):
-                state["ufo"].alive = False
-                state["score"] += state["ufo"].points()
+            for ufo in state["ufos"]:
+                if ufo.alive and exp.hits(ufo.rect()):
+                    ufo.alive = False
+                    state["score"] += ufo.points()
 
         for b in state["enemy_bullets"]:
             if not b.alive: continue
             if b.rect().colliderect(state["player"].rect()):
                 b.alive = False
                 state["player"].lives -= 1
+                state["explosions"].append(Explosion(b.x + b.w // 2, b.y, 35))
                 if state["player"].lives <= 0:
                     state["game_over"] = True
             for bunker in state["bunkers"]:
@@ -503,7 +505,7 @@ def main():
         for bunker in state["bunkers"]:   bunker.draw(screen)
         for e in state["enemies"]:
             if e.alive: e.draw(screen, state["frame"])
-        state["ufo"].draw(screen)
+        for ufo in state["ufos"]: ufo.draw(screen)
 
         score_surf = font.render(f"SCORE {state['score']:06d}", True, WHITE)
         screen.blit(score_surf, (20, 10))
