@@ -23,7 +23,7 @@ CYAN   = (0, 255, 255)
 PURPLE = (200, 0, 200)
 
 PLAYER_SPEED = 9
-LASER_SPEED = 9
+LASER_SPEED = 10
 LASER_COOLDOWN_MS = 550
 ROCKET_SPEED = 9
 ROCKET_COOLDOWN_MS = 2000
@@ -542,17 +542,18 @@ def main():
         cd_ready = now - state["last_rocket"] >= ROCKET_COOLDOWN_MS
         bar_w, bar_h = 300, 18
         bar_x = SCREEN_W // 2 - bar_w // 2
-        bar_y = SCREEN_H - 40
-        cd_color = YELLOW if cd_ready else RED
-        pygame.draw.rect(screen, (60, 60, 60), (bar_x, bar_y, bar_w, bar_h))
+        bar_y = SCREEN_H - 14
+        pulse = int(120 + 80 * math.sin(state["frame"] * 0.15))
+        blue_color = (0, pulse // 2, pulse)
+        pygame.draw.rect(screen, (20, 20, 50), (bar_x, bar_y, bar_w, bar_h))
         if cd_ready:
-            pygame.draw.rect(screen, cd_color, (bar_x, bar_y, bar_w, bar_h))
+            pygame.draw.rect(screen, blue_color, (bar_x, bar_y, bar_w, bar_h))
         else:
             frac = (now - state["last_rocket"]) / ROCKET_COOLDOWN_MS
-            pygame.draw.rect(screen, cd_color, (bar_x, bar_y, int(bar_w * frac), bar_h))
-        pygame.draw.rect(screen, WHITE, (bar_x, bar_y, bar_w, bar_h), 2)
-        label = font.render("ROCKET" if cd_ready else "RELOADING...", True, WHITE)
-        screen.blit(label, (SCREEN_W // 2 - label.get_width() // 2, bar_y - 24))
+            pygame.draw.rect(screen, blue_color, (bar_x, bar_y, int(bar_w * frac), bar_h))
+        pygame.draw.rect(screen, (100, 180, 255), (bar_x, bar_y, bar_w, bar_h), 2)
+        label = font.render("FUSION BOMB" if cd_ready else "CHARGING...", True, (100, 180, 255))
+        screen.blit(label, (SCREEN_W // 2 - label.get_width() // 2, bar_y - 22))
 
         pygame.display.flip()
 
