@@ -28,7 +28,12 @@ ROCKET_SPEED = 7
 ROCKET_COOLDOWN_MS = 2000
 ROCKET_BLAST_RADIUS = 60
 ENEMY_BULLET_SPEED = 4
+ENEMY_COLS = 14
+ENEMY_ROWS = 5
+BUNKER_COUNT = 4
+
 ENEMY_STEP_DOWN = 20
+WAVE_STEP_BONUS = 3
 
 ENEMY_SPEED_BASE = 1.0
 ENEMY_SPEED_MAX = 5.0
@@ -102,6 +107,7 @@ class Player(Entity):
 class Laser(Entity):
     def __init__(self, x, y):
         super().__init__(x, y, 3, 12)
+        self.pierce = random.randint(1, 3)
     def update(self):
         self.y -= LASER_SPEED
         if self.y < 0: self.alive = False
@@ -224,14 +230,13 @@ class UFO(Entity):
 # --- WAVE -----------------------------------------------------------------
 def spawn_wave(wave_num):
     enemies = []
-    rows, cols = 5, 10
     margin = SCREEN_W // 10
-    col_spacing = (SCREEN_W - 2 * margin) // cols
+    col_spacing = (SCREEN_W - 2 * margin) // ENEMY_COLS
     start_x = margin
     start_y = 80 + min(wave_num * 10, 120)
-    for r in range(rows):
+    for r in range(ENEMY_ROWS):
         tier = 2 if r == 0 else (1 if r < 3 else 0)
-        for c in range(cols):
+        for c in range(ENEMY_COLS):
             x = start_x + c * col_spacing
             y = start_y + r * 35
             enemies.append(Enemy(x, y, r, c, tier))
@@ -280,7 +285,7 @@ def main():
             "lasers": [], "rockets": [], "explosions": [],
             "enemies": spawn_wave(1),
             "enemy_bullets": [],
-            "bunkers": [Bunker(SCREEN_W // 5 * (i + 1) - 30, SCREEN_H - 140) for i in range(4)],
+            "bunkers": [Bunker(SCREEN_W // (BUNKER_COUNT + 1) * (i + 1) - 30, SCREEN_H - 140) for i in range(BUNKER_COUNT)],
             "ufo": UFO(),
             "score": 0, "wave": 1,
             "enemy_dir": 1,
@@ -348,7 +353,8 @@ def main():
                        (state["enemy_dir"] == -1 and leftmost + speed <= 0)
             if hit_edge:
                 state["enemy_dir"] *= -1
-                for e in alive_enemies: e.y += ENEMY_STEP_DOWN
+                step = ENEMY_STEP_DOWN + WAVE_STEP_BONUS * (state["wave"] - 1)
+                for e in alive_enemies: e.y += step
             else:
                 for e in alive_enemies: e.x += speed
 
@@ -365,8 +371,11 @@ def main():
             if not l.alive: continue
             for e in state["enemies"]:
                 if e.alive and l.rect().colliderect(e.rect()):
-                    e.alive = False; l.alive = False
+                    e.alive = False
                     state["score"] += e.points
+                    l.pierce -= 1
+                    if l.pierce <= 0:
+                        l.alive = False
                     break
             for b in state["bunkers"]:
                 if l.alive and b.hit(l.rect()): l.alive = False
