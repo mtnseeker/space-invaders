@@ -1,6 +1,6 @@
 """
 Space Invaders — Nels & Dad Edition (v2, merged)
-Dual weapons: lasers (unlimited) and rockets (AoE, cooldown)
+Dual weapons: lasers (unlimited) and fusion bombs! (AoE, cooldown)
 Works with keyboard (laptop dev) OR arcade stick + 2 buttons (cabinet deploy)
 
 """
@@ -39,8 +39,8 @@ WAVE_STEP_BONUS = 3
 ENEMY_SPEED_BASE = 1.0
 ENEMY_SPEED_MAX = 5.0
 WAVE_SPEED_BONUS = 0.4
-ENEMY_SHOOT_BASE_MS = 1200
-ENEMY_SHOOT_MIN_MS = 250
+ENEMY_SHOOT_BASE_MS = 1500
+ENEMY_SHOOT_MIN_MS = 350
 WAVE_SHOOT_BONUS_MS = 100
 
 JOY_DEADZONE = 0.3
@@ -134,8 +134,8 @@ class Rocket(Entity):
         self.y -= ROCKET_SPEED
         if self.y < 0: self.alive = False
     def draw(self, screen):
-        pygame.draw.rect(screen, YELLOW, self.rect())
-        pygame.draw.polygon(screen, RED, [
+        pygame.draw.rect(screen, CYAN, self.rect())
+        pygame.draw.polygon(screen, (0, 80, 255), [
             (self.x, self.y + self.h),
             (self.x + self.w, self.y + self.h),
             (self.x + self.w//2, self.y + self.h + 8),
@@ -154,8 +154,9 @@ class Explosion(Entity):
         cx, cy = rect.centerx, rect.centery
         return math.hypot(cx - self.x, cy - self.y) < self.radius
     def draw(self, screen):
-        pygame.draw.circle(screen, YELLOW, (self.x, self.y), self.radius, 3)
-        pygame.draw.circle(screen, RED, (self.x, self.y), self.radius - 6, 2)
+        pygame.draw.circle(screen, CYAN, (self.x, self.y), self.radius, 3)
+        if self.radius > 8:
+            pygame.draw.circle(screen, GREEN, (self.x, self.y), self.radius - 6, 2)
 
 class Enemy(Entity):
     def __init__(self, x, y, row, col, tier):
