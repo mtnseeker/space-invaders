@@ -225,11 +225,14 @@ class UFO(Entity):
 def spawn_wave(wave_num):
     enemies = []
     rows, cols = 5, 10
-    start_y = 60 + min(wave_num * 10, 80)
+    margin = SCREEN_W // 10
+    col_spacing = (SCREEN_W - 2 * margin) // cols
+    start_x = margin
+    start_y = 80 + min(wave_num * 10, 120)
     for r in range(rows):
         tier = 2 if r == 0 else (1 if r < 3 else 0)
         for c in range(cols):
-            x = 60 + c * 50
+            x = start_x + c * col_spacing
             y = start_y + r * 35
             enemies.append(Enemy(x, y, r, c, tier))
     return enemies
@@ -241,7 +244,7 @@ def enemy_speed(enemies, wave):
     ratio = alive / total if total else 1
     speed = ENEMY_SPEED_MAX - (ENEMY_SPEED_MAX - ENEMY_SPEED_BASE) * ratio
     speed += WAVE_SPEED_BONUS * (wave - 1)
-    return speed
+    return min(speed, ENEMY_SPEED_MAX)
 
 def shoot_interval(enemies, wave):
     alive = sum(1 for e in enemies if e.alive)
@@ -263,7 +266,6 @@ def pick_shooter(enemies):
 
 # --- MAIN -----------------------------------------------------------------
 def main():
-    pygame.init()
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
     pygame.display.set_caption("Space Invaders — Nels & Dad Edition")
     clock = pygame.time.Clock()
@@ -277,7 +279,7 @@ def main():
             "lasers": [], "rockets": [], "explosions": [],
             "enemies": spawn_wave(1),
             "enemy_bullets": [],
-            "bunkers": [Bunker(100 + i*180, SCREEN_H - 140) for i in range(4)],
+            "bunkers": [Bunker(SCREEN_W // 5 * (i + 1) - 30, SCREEN_H - 140) for i in range(4)],
             "ufo": UFO(),
             "score": 0, "wave": 1,
             "enemy_dir": 1,
