@@ -1,5 +1,5 @@
 """
-Space Invaders — Nels & Dad Edition
+Space Invaders — Nels & Dad Edition (v2, merged)
 Dual weapons: lasers (unlimited) and rockets (AoE, cooldown)
 Works with keyboard (laptop dev) OR arcade stick + 2 buttons (cabinet deploy)
 
@@ -8,9 +8,10 @@ Works with keyboard (laptop dev) OR arcade stick + 2 buttons (cabinet deploy)
 import pygame
 import random
 import math
+import os
 
 # --- CONFIG ---------------------------------------------------------------
-SCREEN_W, SCREEN_H = 800, 600
+SCREEN_W, SCREEN_H = 1920, 1080
 FPS = 60
 
 BLACK  = (0, 0, 0)
@@ -260,9 +261,8 @@ def pick_shooter(enemies):
     shooters = list(columns.values())
     return random.choice(shooters) if shooters else None
 
-# --- MAIN -----------------------------------------------------------------d
+# --- MAIN -----------------------------------------------------------------
 def main():
-    pygame.init()
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
     pygame.display.set_caption("Space Invaders — Nels & Dad Edition")
     clock = pygame.time.Clock()
