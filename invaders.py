@@ -102,9 +102,20 @@ class Player(Entity):
     def update(self, inp):
         if inp.left():  self.x = max(0, self.x - PLAYER_SPEED)
         if inp.right(): self.x = min(SCREEN_W - self.w, self.x + PLAYER_SPEED)
-    def draw(self, screen):
-        pygame.draw.rect(screen, GREEN, self.rect())
-        pygame.draw.rect(screen, GREEN, (self.x + self.w//2 - 3, self.y - 8, 6, 8))
+    def draw(self, screen, frame=0):
+        cx = self.x + self.w // 2
+        sy = self.y
+        pygame.draw.rect(screen, GREEN, (cx - 20, sy + 6, 40, 14))
+        pygame.draw.rect(screen, GREEN, (cx - 12, sy - 4, 24, 10))
+        pygame.draw.rect(screen, GREEN, (cx - 4,  sy - 10, 8, 6))
+        pygame.draw.rect(screen, CYAN,  (cx - 16, sy + 8,  7, 8))
+        pygame.draw.rect(screen, CYAN,  (cx + 9,  sy + 8,  7, 8))
+        flame_h = 4 + int(3 * math.sin(frame * 0.3))
+        pygame.draw.polygon(screen, YELLOW, [
+            (cx - 6, sy + 20),
+            (cx + 6, sy + 20),
+            (cx,     sy + 20 + flame_h),
+        ])
 
 class Laser(Entity):
     def __init__(self, x, y):
@@ -509,7 +520,7 @@ def main():
                 (random.randint(0, SCREEN_W), random.randint(0, SCREEN_H)), 1)
         random.seed()
 
-        state["player"].draw(screen)
+        state["player"].draw(screen, state["frame"])
         for l in state["lasers"]:         l.draw(screen)
         for r in state["rockets"]:        r.draw(screen)
         for exp in state["explosions"]:   exp.draw(screen)
