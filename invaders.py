@@ -544,8 +544,8 @@ def draw_paused(screen, font):
     overlay.set_alpha(180)
     overlay.fill(BLACK)
     screen.blit(overlay, (0, 0))
-    big_font = pygame.font.Font(None, 100) 
-    paused_msg1 = big_font.render("GAME PAUSED", True, (252, 3, 123))
+
+    paused_msg1 = font.render("GAME PAUSED", True, (252, 3, 123))
     paused_msg2 = font.render("Press the Dude button again to resume!", True, GREEN)
     screen.blit(msg, (SCREEN_W//2 - msg.get_width()//2, SCREEN_H//2))
 
