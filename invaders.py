@@ -27,7 +27,7 @@ LASER_SPEED = 6
 LASER_COOLDOWN_MS = 600
 ROCKET_SPEED = 7
 ROCKET_COOLDOWN_MS = 2000
-ROCKET_BLAST_RADIUS = 80
+ROCKET_BLAST_RADIUS = 100
 ENEMY_BULLET_SPEED = 7
 ENEMY_COLS = 30
 ENEMY_ROWS = 8
@@ -113,7 +113,7 @@ class Laser(Entity):
         self.y -= LASER_SPEED
         if self.y < 0: self.alive = False
     def draw(self, screen):
-        pygame.draw.rect(screen, CYAN, self.rect())
+        pygame.draw.rect(screen, RED, self.rect())
 
 class Rocket(Entity):
     def __init__(self, x, y):
@@ -153,35 +153,38 @@ class Enemy(Entity):
         self.color = [GREEN, CYAN, PURPLE][tier]
     def draw(self, screen, frame=0):
         a = (frame // 30) % 2
+        jx = int(math.sin(frame * 0.25 + self.col * 1.7) * 2)
+        jy = int(math.cos(frame * 0.18 + self.row * 2.3) * 1)
+        x, y = self.x + jx, self.y + jy
         if self.tier == 0:
-            self._draw_crab(screen, a)
+            self._draw_crab(screen, a, x, y)
         elif self.tier == 1:
-            self._draw_squid(screen, a)
+            self._draw_squid(screen, a, x, y)
         else:
-            self._draw_jellyfish(screen, a)
-    def _draw_crab(self, screen, a):
-        pygame.draw.rect(screen, self.color, self.rect())
-        pygame.draw.rect(screen, BLACK, (self.x + 5, self.y + 5, 5, 5))
-        pygame.draw.rect(screen, BLACK, (self.x + 20, self.y + 5, 5, 5))
-        arm_y = self.y + 3 + a * 3
-        pygame.draw.rect(screen, self.color, (self.x - 7, arm_y, 7, 4))
-        pygame.draw.rect(screen, self.color, (self.x + self.w, arm_y, 7, 4))
-        pygame.draw.rect(screen, self.color, (self.x + 4, self.y + self.h, 4, 3 + a))
-        pygame.draw.rect(screen, self.color, (self.x + self.w - 8, self.y + self.h, 4, 3 + a))
-    def _draw_squid(self, screen, a):
-        pygame.draw.rect(screen, self.color, (self.x + 3, self.y, self.w - 6, self.h))
-        pygame.draw.rect(screen, BLACK, (self.x + 8, self.y + 5, 4, 4))
-        pygame.draw.rect(screen, BLACK, (self.x + 18, self.y + 5, 4, 4))
-        pygame.draw.rect(screen, self.color, (self.x + 7, self.y - 4 - a, 3, 4 + a))
-        pygame.draw.rect(screen, self.color, (self.x + 20, self.y - 4 - a, 3, 4 + a))
+            self._draw_jellyfish(screen, a, x, y)
+    def _draw_crab(self, screen, a, x, y):
+        pygame.draw.rect(screen, self.color, (x, y, self.w, self.h))
+        pygame.draw.rect(screen, BLACK, (x + 5, y + 5, 5, 5))
+        pygame.draw.rect(screen, BLACK, (x + 20, y + 5, 5, 5))
+        arm_y = y + 3 + a * 3
+        pygame.draw.rect(screen, self.color, (x - 7, arm_y, 7, 4))
+        pygame.draw.rect(screen, self.color, (x + self.w, arm_y, 7, 4))
+        pygame.draw.rect(screen, self.color, (x + 4, y + self.h, 4, 3 + a))
+        pygame.draw.rect(screen, self.color, (x + self.w - 8, y + self.h, 4, 3 + a))
+    def _draw_squid(self, screen, a, x, y):
+        pygame.draw.rect(screen, self.color, (x + 3, y, self.w - 6, self.h))
+        pygame.draw.rect(screen, BLACK, (x + 8, y + 5, 4, 4))
+        pygame.draw.rect(screen, BLACK, (x + 18, y + 5, 4, 4))
+        pygame.draw.rect(screen, self.color, (x + 7, y - 4 - a, 3, 4 + a))
+        pygame.draw.rect(screen, self.color, (x + 20, y - 4 - a, 3, 4 + a))
         for i in range(3):
-            pygame.draw.rect(screen, self.color, (self.x + 4 + i * 9, self.y + self.h, 3, 4 + a * (i % 2)))
-    def _draw_jellyfish(self, screen, a):
-        pygame.draw.ellipse(screen, self.color, (self.x, self.y, self.w, self.h))
-        pygame.draw.rect(screen, BLACK, (self.x + 6, self.y + 5, 4, 4))
-        pygame.draw.rect(screen, BLACK, (self.x + 20, self.y + 5, 4, 4))
+            pygame.draw.rect(screen, self.color, (x + 4 + i * 9, y + self.h, 3, 4 + a * (i % 2)))
+    def _draw_jellyfish(self, screen, a, x, y):
+        pygame.draw.ellipse(screen, self.color, (x, y, self.w, self.h))
+        pygame.draw.rect(screen, BLACK, (x + 6, y + 5, 4, 4))
+        pygame.draw.rect(screen, BLACK, (x + 20, y + 5, 4, 4))
         for i in range(4):
-            pygame.draw.rect(screen, self.color, (self.x + 3 + i * 7, self.y + self.h - 2, 2, 4 + a * (i % 2) * 2))
+            pygame.draw.rect(screen, self.color, (x + 3 + i * 7, y + self.h - 2, 2, 4 + a * (i % 2) * 2))
 
 class EnemyBullet(Entity):
     def __init__(self, x, y):
