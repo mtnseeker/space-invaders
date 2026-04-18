@@ -338,8 +338,47 @@ def pick_shooter(enemies):
     shooters = list(columns.values())
     return random.choice(shooters) if shooters else None
 
+# --- SOUND ----------------------------------------------------------------
+# RPi4: if no sound, run: amixer cset numid=3 1  (force 3.5mm jack)
+def _make_tone(freq, ms, vol=0.4, sweep_to=None, rate=22050):
+    n = int(rate * ms / 1000)
+    buf = bytearray(n * 2)
+    for i in range(n):
+        f = freq if sweep_to is None else freq + (sweep_to - freq) * i / n
+        fade = 1.0 if i < n * 0.8 else (n - i) / max(1, n * 0.2)
+        v = int(vol * 32767 * fade * math.sin(2 * math.pi * f * i / rate))
+        v = max(-32768, min(32767, v))
+        buf[2*i] = v & 0xff
+        buf[2*i+1] = (v >> 8) & 0xff
+    return pygame.mixer.Sound(buffer=buf)
+
+def _make_noise(ms, vol=0.4, rate=22050):
+    n = int(rate * ms / 1000)
+    buf = bytearray(n * 2)
+    for i in range(n):
+        fade = max(0.0, 1.0 - i / n)
+        v = int(vol * 32767 * fade * random.uniform(-1, 1))
+        v = max(-32768, min(32767, v))
+        buf[2*i] = v & 0xff
+        buf[2*i+1] = (v >> 8) & 0xff
+    return pygame.mixer.Sound(buffer=buf)
+
+def init_sounds():
+    pygame.mixer.pre_init(22050, -16, 1, 512)
+    pygame.mixer.init()
+    pygame.mixer.set_num_channels(8)
+    return {
+        "laser":      _make_tone(880, 70,  vol=0.25),
+        "bomb_fire":  _make_tone(180, 220, vol=0.5, sweep_to=420),
+        "enemy_kill": _make_tone(520, 55,  vol=0.2, sweep_to=180),
+        "explosion":  _make_noise(380, vol=0.5),
+        "player_hit": _make_tone(280, 320, vol=0.6, sweep_to=90),
+        "wave_clear": _make_tone(440, 400, vol=0.4, sweep_to=880),
+    }
+
 # --- MAIN -----------------------------------------------------------------
 def main():
+    pygame.mixer.pre_init(22050, -16, 1, 512)
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
     pygame.display.set_caption("Space Invaders — Nels & Dad Edition")
@@ -347,6 +386,7 @@ def main():
     font = pygame.font.Font(None, 32)
     big_font = pygame.font.Font(None, 72)
     inp = Input()
+    sfx = init_sounds()
 
     def new_game():
         return {
@@ -399,11 +439,13 @@ def main():
                     p = state["player"]
                     state["lasers"].append(Laser(p.x + p.w//2 - 1, p.y - 12))
                     state["last_laser"] = now
+                    sfx["laser"].play()
             if inp.rocket_pressed(event):
                 if now - state["last_rocket"] >= ROCKET_COOLDOWN_MS:
                     p = state["player"]
                     state["rockets"].append(Rocket(p.x + p.w//2 - 3, p.y - 16))
                     state["last_rocket"] = now
+                    sfx["bomb_fire"].play()
 
         if intro:
             draw_intro(screen, font, big_font, intro_frame)
@@ -457,6 +499,7 @@ def main():
                 if e.alive and l.rect().colliderect(e.rect()):
                     e.alive = False
                     state["score"] += e.points
+                    sfx["enemy_kill"].play()
                     l.pierce -= 1
                     if l.pierce <= 0:
                         l.alive = False
@@ -485,6 +528,7 @@ def main():
             if exploded:
                 r.alive = False
                 state["explosions"].append(Explosion(r.x + r.w//2, r.y + r.h//2))
+                sfx["explosion"].play()
 
         for exp in state["explosions"]:
             for e in state["enemies"]:
@@ -503,6 +547,7 @@ def main():
                 b.alive = False
                 state["player"].lives -= 1
                 state["explosions"].append(Explosion(b.x + b.w // 2, b.y, 35))
+                sfx["player_hit"].play()
                 if state["player"].lives <= 0:
                     state["game_over"] = True
             for bunker in state["bunkers"]:
@@ -519,6 +564,7 @@ def main():
         state["enemy_bullets"] = [x for x in state["enemy_bullets"] if x.alive]
 
         if not any(e.alive for e in state["enemies"]):
+            sfx["wave_clear"].play()
             state["wave"] += 1
             state["enemies"] = spawn_wave(state["wave"])
 
