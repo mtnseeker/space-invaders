@@ -29,8 +29,8 @@ ROCKET_SPEED = 9
 ROCKET_COOLDOWN_MS = 2000
 ROCKET_BLAST_RADIUS = 150
 ENEMY_BULLET_SPEED = 7
-ENEMY_COLS = 25
-ENEMY_ROWS = 8
+ENEMY_COLS = 20
+ENEMY_ROWS = 7
 BUNKER_COUNT = 10
 
 ENEMY_STEP_DOWN = 20
@@ -410,6 +410,8 @@ def main():
             pygame.display.flip()
             continue
 
+        state["frame"] += 1
+
         # Update
         state["player"].update(inp)
         for l in state["lasers"]: l.update()
@@ -538,12 +540,19 @@ def main():
         screen.blit(lives_surf, (SCREEN_W - 140, 10))
 
         cd_ready = now - state["last_rocket"] >= ROCKET_COOLDOWN_MS
+        bar_w, bar_h = 300, 18
+        bar_x = SCREEN_W // 2 - bar_w // 2
+        bar_y = SCREEN_H - 40
         cd_color = YELLOW if cd_ready else RED
-        pygame.draw.rect(screen, cd_color, (20, SCREEN_H - 30, 100, 10), 0 if cd_ready else 2)
-        if not cd_ready:
+        pygame.draw.rect(screen, (60, 60, 60), (bar_x, bar_y, bar_w, bar_h))
+        if cd_ready:
+            pygame.draw.rect(screen, cd_color, (bar_x, bar_y, bar_w, bar_h))
+        else:
             frac = (now - state["last_rocket"]) / ROCKET_COOLDOWN_MS
-            pygame.draw.rect(screen, cd_color, (20, SCREEN_H - 30, int(100*frac), 10))
-        screen.blit(font.render("ROCKET", True, WHITE), (130, SCREEN_H - 35))
+            pygame.draw.rect(screen, cd_color, (bar_x, bar_y, int(bar_w * frac), bar_h))
+        pygame.draw.rect(screen, WHITE, (bar_x, bar_y, bar_w, bar_h), 2)
+        label = font.render("ROCKET" if cd_ready else "RELOADING...", True, WHITE)
+        screen.blit(label, (SCREEN_W // 2 - label.get_width() // 2, bar_y - 24))
 
         pygame.display.flip()
 
