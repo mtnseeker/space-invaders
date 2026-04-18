@@ -23,7 +23,7 @@ CYAN   = (0, 255, 255)
 PURPLE = (200, 0, 200)
 
 PLAYER_SPEED = 9
-LASER_SPEED = 7
+LASER_SPEED = 9
 LASER_COOLDOWN_MS = 600
 ROCKET_SPEED = 9
 ROCKET_COOLDOWN_MS = 2000
@@ -346,19 +346,25 @@ def main():
             "frame": 0,
         }
 
+    intro = True
+    intro_frame = 0
     state = new_game()
     running = True
 
     while running:
         dt = clock.tick(FPS)
         now = pygame.time.get_ticks()
-        state["frame"] += 1
+        intro_frame += 1
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
+            if intro:
+                if event.type == pygame.KEYDOWN or event.type == pygame.JOYBUTTONDOWN:
+                    intro = False
+                continue
             if (event.type == pygame.KEYDOWN and event.key == pygame.K_p) or \
                (event.type == pygame.JOYBUTTONDOWN and event.button == JOY_BUTTON_PAUSE):
                 state["paused"] = not state["paused"]
@@ -380,6 +386,10 @@ def main():
                     state["rockets"].append(Rocket(p.x + p.w//2 - 3, p.y - 16))
                     state["last_rocket"] = now
 
+        if intro:
+            draw_intro(screen, font, big_font, intro_frame)
+            pygame.display.flip()
+            continue
         if state["game_over"]:
             draw_game_over(screen, font, big_font, state["score"])
             pygame.display.flip()
@@ -529,6 +539,47 @@ def main():
     pygame.quit()
 
 
+def draw_intro(screen, font, big_font, frame):
+    screen.fill(BLACK)
+    random.seed(42)
+    for _ in range(80):
+        pygame.draw.circle(screen, WHITE,
+            (random.randint(0, SCREEN_W), random.randint(0, SCREEN_H)), 1)
+    random.seed()
+
+    title_font = pygame.font.Font(None, 160)
+    sub_font   = pygame.font.Font(None, 48)
+
+    # pulsing title colour
+    pulse = int(180 + 75 * math.sin(frame * 0.05))
+    title_color = (pulse, 255 - pulse // 3, 60)
+    title = title_font.render("SPACE INVADERS", True, title_color)
+    screen.blit(title, (SCREEN_W // 2 - title.get_width() // 2, 200))
+
+    sub = sub_font.render("Nels & Dad Edition", True, CYAN)
+    screen.blit(sub, (SCREEN_W // 2 - sub.get_width() // 2, 370))
+
+    # animated spaceship
+    sx = SCREEN_W // 2
+    sy = 560
+    pygame.draw.rect(screen, GREEN, (sx - 30, sy, 60, 22))
+    pygame.draw.rect(screen, GREEN, (sx - 18, sy - 14, 36, 14))
+    pygame.draw.rect(screen, GREEN, (sx - 6,  sy - 22, 12, 8))
+    pygame.draw.rect(screen, CYAN,  (sx - 22, sy + 4,  10, 10))
+    pygame.draw.rect(screen, CYAN,  (sx + 12, sy + 4,  10, 10))
+    flame_h = 6 + int(4 * math.sin(frame * 0.3))
+    pygame.draw.polygon(screen, YELLOW, [
+        (sx - 8,  sy + 22),
+        (sx + 8,  sy + 22),
+        (sx,      sy + 22 + flame_h),
+    ])
+
+    blink = (frame // 40) % 2 == 0
+    if blink:
+        hint = sub_font.render("Press any button to start", True, WHITE)
+        screen.blit(hint, (SCREEN_W // 2 - hint.get_width() // 2, 680))
+
+
 def draw_game_over(screen, font, big_font, score):
     screen.fill(BLACK)
     go = big_font.render("GAME OVER", True, RED)
@@ -547,8 +598,13 @@ def draw_paused(screen, font):
     big_font = pygame.font.Font(None, 100) 
     paused_msg1 = big_font.render("GAME PAUSED", True, (252, 3, 123))
     paused_msg2 = font.render("Press the Dude button again to resume!", True, GREEN)
-    screen.blit(paused_msg1, (SCREEN_W//2 - paused_msg1.get_width()//2, SCREEN_H//2))
-    screen.blit(paused_msg2, (SCREEN_W//2 - paused_msg2.get_width()//2, SCREEN_H//2 + 50))
+
+    # Calculate vertical positions for spacing
+    total_height = paused_msg1.get_height() + 30 + paused_msg2.get_height()
+    start_y = SCREEN_H // 2 - total_height // 2  # Center both as a block
+
+    screen.blit(paused_msg1, (SCREEN_W//2 - paused_msg1.get_width()//2, start_y))
+    screen.blit(paused_msg2, (SCREEN_W//2 - paused_msg2.get_width()//2, start_y + paused_msg1.get_height() + 30))
 
 
 if __name__ == "__main__":
