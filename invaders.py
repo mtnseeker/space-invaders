@@ -22,14 +22,14 @@ YELLOW = (255, 220, 0)
 CYAN   = (0, 255, 255)
 PURPLE = (200, 0, 200)
 
-PLAYER_SPEED = 5
+PLAYER_SPEED = 9
 LASER_SPEED = 6
 LASER_COOLDOWN_MS = 600
-ROCKET_SPEED = 7
+ROCKET_SPEED = 9
 ROCKET_COOLDOWN_MS = 2000
 ROCKET_BLAST_RADIUS = 100
 ENEMY_BULLET_SPEED = 7
-ENEMY_COLS = 30
+ENEMY_COLS = 25
 ENEMY_ROWS = 8
 BUNKER_COUNT = 10
 
@@ -151,10 +151,14 @@ class Enemy(Entity):
         self.row, self.col, self.tier = row, col, tier
         self.points = [10, 20, 40][tier]
         self.color = [GREEN, CYAN, PURPLE][tier]
+        self._jfx = random.uniform(0.1, 0.4)
+        self._jfy = random.uniform(0.08, 0.3)
+        self._jpx = random.uniform(0, math.tau)
+        self._jpy = random.uniform(0, math.tau)
     def draw(self, screen, frame=0):
         a = (frame // 30) % 2
-        jx = int(math.sin(frame * 0.25 + self.col * 1.7) * 2)
-        jy = int(math.cos(frame * 0.18 + self.row * 2.3) * 1)
+        jx = int(math.sin(frame * self._jfx + self._jpx) * 2)
+        jy = int(math.cos(frame * self._jfy + self._jpy) * 1)
         x, y = self.x + jx, self.y + jy
         if self.tier == 0:
             self._draw_crab(screen, a, x, y)
@@ -189,10 +193,14 @@ class Enemy(Entity):
 class EnemyBullet(Entity):
     def __init__(self, x, y):
         super().__init__(x, y, 3, 10)
+        self._dot_offsets = [(random.randint(-6, 6), random.randint(-6, 6)) for _ in range(5)]
     def update(self):
         self.y += ENEMY_BULLET_SPEED
         if self.y > SCREEN_H: self.alive = False
     def draw(self, screen):
+        cx, cy = self.x + self.w // 2, self.y + self.h // 2
+        for dx, dy in self._dot_offsets:
+            pygame.draw.circle(screen, RED, (cx + dx, cy + dy), 1)
         pygame.draw.rect(screen, RED, self.rect())
 
 class Bunker:
