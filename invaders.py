@@ -12,7 +12,7 @@ import os
 
 # --- CONFIG ---------------------------------------------------------------
 SCREEN_W, SCREEN_H = 1920, 1080
-FPS = 60
+FPS = 120
 
 BLACK  = (0, 0, 0)
 WHITE  = (255, 255, 255)
@@ -24,13 +24,14 @@ PURPLE = (200, 0, 200)
 
 PLAYER_SPEED = 5
 LASER_SPEED = 6
+LASER_COOLDOWN_MS = 400
 ROCKET_SPEED = 7
 ROCKET_COOLDOWN_MS = 2000
 ROCKET_BLAST_RADIUS = 60
-ENEMY_BULLET_SPEED = 4
+ENEMY_BULLET_SPEED = 7
 ENEMY_COLS = 20
 ENEMY_ROWS = 7
-BUNKER_COUNT = 6
+BUNKER_COUNT = 10
 
 ENEMY_STEP_DOWN = 20
 WAVE_STEP_BONUS = 3
@@ -151,12 +152,36 @@ class Enemy(Entity):
         self.points = [10, 20, 40][tier]
         self.color = [GREEN, CYAN, PURPLE][tier]
     def draw(self, screen, frame=0):
-        offset = 2 if (frame // 30) % 2 == 0 else 0
+        a = (frame // 30) % 2
+        if self.tier == 0:
+            self._draw_crab(screen, a)
+        elif self.tier == 1:
+            self._draw_squid(screen, a)
+        else:
+            self._draw_jellyfish(screen, a)
+    def _draw_crab(self, screen, a):
         pygame.draw.rect(screen, self.color, self.rect())
-        pygame.draw.rect(screen, BLACK, (self.x + 6, self.y + 6, 4, 4))
-        pygame.draw.rect(screen, BLACK, (self.x + 20, self.y + 6, 4, 4))
-        pygame.draw.rect(screen, self.color, (self.x - 2, self.y + self.h, 4, 3 + offset))
-        pygame.draw.rect(screen, self.color, (self.x + self.w - 2, self.y + self.h, 4, 3 + offset))
+        pygame.draw.rect(screen, BLACK, (self.x + 5, self.y + 5, 5, 5))
+        pygame.draw.rect(screen, BLACK, (self.x + 20, self.y + 5, 5, 5))
+        arm_y = self.y + 3 + a * 3
+        pygame.draw.rect(screen, self.color, (self.x - 7, arm_y, 7, 4))
+        pygame.draw.rect(screen, self.color, (self.x + self.w, arm_y, 7, 4))
+        pygame.draw.rect(screen, self.color, (self.x + 4, self.y + self.h, 4, 3 + a))
+        pygame.draw.rect(screen, self.color, (self.x + self.w - 8, self.y + self.h, 4, 3 + a))
+    def _draw_squid(self, screen, a):
+        pygame.draw.rect(screen, self.color, (self.x + 3, self.y, self.w - 6, self.h))
+        pygame.draw.rect(screen, BLACK, (self.x + 8, self.y + 5, 4, 4))
+        pygame.draw.rect(screen, BLACK, (self.x + 18, self.y + 5, 4, 4))
+        pygame.draw.rect(screen, self.color, (self.x + 7, self.y - 4 - a, 3, 4 + a))
+        pygame.draw.rect(screen, self.color, (self.x + 20, self.y - 4 - a, 3, 4 + a))
+        for i in range(3):
+            pygame.draw.rect(screen, self.color, (self.x + 4 + i * 9, self.y + self.h, 3, 4 + a * (i % 2)))
+    def _draw_jellyfish(self, screen, a):
+        pygame.draw.ellipse(screen, self.color, (self.x, self.y, self.w, self.h))
+        pygame.draw.rect(screen, BLACK, (self.x + 6, self.y + 5, 4, 4))
+        pygame.draw.rect(screen, BLACK, (self.x + 20, self.y + 5, 4, 4))
+        for i in range(4):
+            pygame.draw.rect(screen, self.color, (self.x + 3 + i * 7, self.y + self.h - 2, 2, 4 + a * (i % 2) * 2))
 
 class EnemyBullet(Entity):
     def __init__(self, x, y):
@@ -202,30 +227,43 @@ class Bunker:
         for _, _, br in self.block_rects():
             pygame.draw.rect(screen, GREEN, br)
 
+UFO_STYLES = [
+    {"color": RED,    "speed": 3, "points": [50, 100, 150, 300]},
+    {"color": PURPLE, "speed": 5, "points": [200, 300, 400]},
+    {"color": YELLOW, "speed": 2, "points": [500, 750, 1000]},
+    {"color": CYAN,   "speed": 6, "points": [100, 100, 100, 100, 500]},
+]
+
 class UFO(Entity):
     def __init__(self):
         super().__init__(-50, 40, 50, 16)
+        self.style = UFO_STYLES[0]
         self.reset()
     def reset(self):
         self.alive = False
-        self.next_spawn = pygame.time.get_ticks() + random.randint(15000, 25000)
+        self.next_spawn = pygame.time.get_ticks() + random.randint(6000, 12000)
         self.direction = 1
     def maybe_spawn(self):
         if not self.alive and pygame.time.get_ticks() > self.next_spawn:
             self.alive = True
+            self.style = random.choice(UFO_STYLES)
             self.direction = random.choice([-1, 1])
             self.x = -self.w if self.direction == 1 else SCREEN_W
-            self.y = 40
+            self.y = random.randint(30, 80)
     def update(self):
         if not self.alive: return
-        self.x += 3 * self.direction
+        self.x += self.style["speed"] * self.direction
         if self.x < -self.w or self.x > SCREEN_W:
             self.alive = False
-            self.next_spawn = pygame.time.get_ticks() + random.randint(15000, 25000)
+            self.next_spawn = pygame.time.get_ticks() + random.randint(6000, 12000)
     def draw(self, screen):
         if not self.alive: return
-        pygame.draw.ellipse(screen, RED, self.rect())
-        pygame.draw.rect(screen, YELLOW, (self.x + 10, self.y + 4, self.w - 20, 4))
+        color = self.style["color"]
+        pygame.draw.ellipse(screen, color, self.rect())
+        pygame.draw.rect(screen, WHITE, (self.x + 10, self.y + 4, self.w - 20, 4))
+        pygame.draw.circle(screen, WHITE, (int(self.x + self.w // 2), self.y + 3), 4)
+    def points(self):
+        return random.choice(self.style["points"])
 
 # --- WAVE -----------------------------------------------------------------
 def spawn_wave(wave_num):
@@ -290,6 +328,7 @@ def main():
             "score": 0, "wave": 1,
             "enemy_dir": 1,
             "last_rocket": -ROCKET_COOLDOWN_MS,
+            "last_laser": -LASER_COOLDOWN_MS,
             "enemy_shoot_timer": 0,
             "game_over": False, "paused": False,
             "frame": 0,
@@ -318,8 +357,10 @@ def main():
                 continue
             if state["paused"]: continue
             if inp.laser_pressed(event):
-                p = state["player"]
-                state["lasers"].append(Laser(p.x + p.w//2 - 1, p.y - 12))
+                if now - state["last_laser"] >= LASER_COOLDOWN_MS:
+                    p = state["player"]
+                    state["lasers"].append(Laser(p.x + p.w//2 - 1, p.y - 12))
+                    state["last_laser"] = now
             if inp.rocket_pressed(event):
                 if now - state["last_rocket"] >= ROCKET_COOLDOWN_MS:
                     p = state["player"]
@@ -381,8 +422,8 @@ def main():
                 if l.alive and b.hit(l.rect()): l.alive = False
             if l.alive and state["ufo"].alive and l.rect().colliderect(state["ufo"].rect()):
                 l.alive = False; state["ufo"].alive = False
-                state["ufo"].next_spawn = now + random.randint(15000, 25000)
-                state["score"] += random.choice([50, 100, 150, 300])
+                state["ufo"].next_spawn = now + random.randint(6000, 12000)
+                state["score"] += state["ufo"].points()
 
         for r in state["rockets"]:
             if not r.alive: continue
@@ -409,7 +450,7 @@ def main():
             for b in state["bunkers"]: b.hit_explosion(exp)
             if state["ufo"].alive and exp.hits(state["ufo"].rect()):
                 state["ufo"].alive = False
-                state["score"] += 150
+                state["score"] += state["ufo"].points()
 
         for b in state["enemy_bullets"]:
             if not b.alive: continue
