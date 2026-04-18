@@ -266,6 +266,7 @@ def pick_shooter(enemies):
 
 # --- MAIN -----------------------------------------------------------------
 def main():
+    pygame.init()
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
     pygame.display.set_caption("Space Invaders — Nels & Dad Edition")
     clock = pygame.time.Clock()
