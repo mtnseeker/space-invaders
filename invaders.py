@@ -46,6 +46,7 @@ WAVE_SHOOT_BONUS_MS = 100
 JOY_DEADZONE = 0.3
 JOY_BUTTON_LASER = 0
 JOY_BUTTON_ROCKET = 1
+JOY_BUTTON_PAUSE = 2
 
 # --- ENTITY BASE (merged pattern #1) --------------------------------------
 class Entity:
@@ -358,7 +359,8 @@ def main():
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+            if (event.type == pygame.KEYDOWN and event.key == pygame.K_p) or \
+               (event.type == pygame.JOYBUTTONDOWN and event.button == JOY_BUTTON_PAUSE):
                 state["paused"] = not state["paused"]
             if state["game_over"]:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
