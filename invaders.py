@@ -1,6 +1,6 @@
 """
 Space Invaders — Nels & Dad Edition (v2, merged)
-Dual weapons: lasers (unlimited) and fusion bombs! (AoE, cooldown)
+Dual weapons: lasers (unlimited) and rockets (AoE, cooldown)
 Works with keyboard (laptop dev) OR arcade stick + 2 buttons (cabinet deploy)
 
 """
@@ -129,17 +129,24 @@ class Laser(Entity):
 
 class Rocket(Entity):
     def __init__(self, x, y):
-        super().__init__(x, y, 6, 16)
+        super().__init__(x, y, 12, 12)
+        self._trail = []
     def update(self):
+        cx, cy = self.x + self.w // 2, self.y + self.h // 2
+        self._trail.append((cx + random.randint(-2, 2), cy + random.randint(4, 10)))
+        if len(self._trail) > 12:
+            self._trail.pop(0)
         self.y -= ROCKET_SPEED
         if self.y < 0: self.alive = False
     def draw(self, screen):
-        pygame.draw.rect(screen, CYAN, self.rect())
-        pygame.draw.polygon(screen, (0, 80, 255), [
-            (self.x, self.y + self.h),
-            (self.x + self.w, self.y + self.h),
-            (self.x + self.w//2, self.y + self.h + 8),
-        ])
+        for i, (tx, ty) in enumerate(self._trail):
+            alpha = i / len(self._trail)
+            r = int(255 * alpha)
+            g = int(80 * alpha * (1 - alpha) * 4)
+            pygame.draw.circle(screen, (r, g, 0), (tx, ty), max(1, int(4 * alpha)))
+        cx, cy = self.x + self.w // 2, self.y + self.h // 2
+        pygame.draw.circle(screen, CYAN, (cx, cy), 6)
+        pygame.draw.circle(screen, WHITE, (cx, cy), 3)
 
 class Explosion(Entity):
     def __init__(self, x, y, max_radius=None):
@@ -541,9 +548,9 @@ def main():
         screen.blit(lives_surf, (SCREEN_W - 140, 10))
 
         cd_ready = now - state["last_rocket"] >= ROCKET_COOLDOWN_MS
-        bar_w, bar_h = 300, 18
+        bar_w, bar_h = 300, 14
         bar_x = SCREEN_W // 2 - bar_w // 2
-        bar_y = SCREEN_H - 14
+        bar_y = SCREEN_H - bar_h
         pulse = int(120 + 80 * math.sin(state["frame"] * 0.15))
         blue_color = (0, pulse // 2, pulse)
         pygame.draw.rect(screen, (20, 20, 50), (bar_x, bar_y, bar_w, bar_h))
@@ -554,7 +561,7 @@ def main():
             pygame.draw.rect(screen, blue_color, (bar_x, bar_y, int(bar_w * frac), bar_h))
         pygame.draw.rect(screen, (100, 180, 255), (bar_x, bar_y, bar_w, bar_h), 2)
         label = font.render("FUSION BOMB" if cd_ready else "CHARGING...", True, (100, 180, 255))
-        screen.blit(label, (SCREEN_W // 2 - label.get_width() // 2, bar_y - 22))
+        screen.blit(label, (SCREEN_W // 2 - label.get_width() // 2, bar_y - 18))
 
         pygame.display.flip()
 
